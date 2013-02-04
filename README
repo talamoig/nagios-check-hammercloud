@@ -1,0 +1,2 @@
+This nagios plugin checks the HammerCloud job efficiency for a specific CMS site.
+The job is done by looking at the page: http://hammercloud.cern.ch/hc/app/cms/joberrors/
