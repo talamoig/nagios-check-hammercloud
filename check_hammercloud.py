@@ -5,6 +5,8 @@ import re
 import datetime
 import urllib
 import urllib2
+import getopt
+from optparse import OptionParser
 
 CRITICAL=0.8
 WARNING=0.9
@@ -14,35 +16,52 @@ RET_WARN=1
 RET_CRIT=2
 RET_UNKN=3
 
-try:
-    site=sys.argv[1]
-except Exception:
-    sys.stderr.write("Please specify a site name as argument (eg. %s T2_IT_Rome)\n"%sys.argv[0])
-    sys.exit(RET_UNKN)
+
+def hammercloud(sitename,days):
     
-now=datetime.datetime.now()
-d=datetime.timedelta(1)
-yesterday=now-d
-time=yesterday.strftime("%m/%d/%Y %H:%M")
-url='http://hammercloud.cern.ch/hc/app/cms/joberrors/?&cloud=&test=&template=&start_date=%s&end_date='%urllib.quote(time,"")
-response = urllib2.urlopen(url)
-html=response.read().split("\n")
-html=map(lambda x:x.strip(),html)
-res=filter(lambda x:x.find("<td>%s"%site)==0,html)
-if len(res)!=1:
-    sys.exit(RET_UNKN)
-res=res[0]
-exp=".*<td>(.*)</td></tr>"
-r=re.compile(exp)
-m=r.match(res)
-if m:
-    efficiency=m.group(1)
-    efficiency=float(efficiency)
-    print "HammerCloud Efficiency: %s"%efficiency
-    if efficiency<CRITICAL:
-        sys.exit(RET_CRIT)
-    if efficiency<WARNING:
-        sys.exit(RET_WARN)
-    sys.exit(RET_OK)
-sys.exit(RET_UNKN)
+    now=datetime.datetime.now()
+    d=datetime.timedelta(days)
+    yesterday=now-d
+    time=yesterday.strftime("%m/%d/%Y %H:%M")
+    url='http://hammercloud.cern.ch/hc/app/cms/joberrors/?&cloud=&test=&template=&start_date=%s&end_date='%urllib.quote(time,"")
+    response = urllib2.urlopen(url)
+    html=response.read().split("\n")
+    html=map(lambda x:x.strip(),html)
+    res=filter(lambda x:x.find("<td>%s"%sitename)==0,html)
+    if len(res)!=1:
+        sys.exit(RET_UNKN)
+    res=res[0]
+    exp=".*<td>.*</td><td>([0-9]*)</td><td><a href=.*>([0-9]*) .*</td><td><a href=.*>([0-9]*) .*</td><td>(.*)</td></tr>"
+    r=re.compile(exp)
+    m=r.match(res)
+    if m:
+        total=int(m.group(1))
+        gridfailed=int(m.group(2))
+        appfailed=int(m.group(3))
+        totalfailed=gridfailed+appfailed
+        efficiency=m.group(4)
+        efficiency=float(efficiency)
+        print "HammerCloud Efficiency: %s (%s/%s)"%(efficiency,total,totalfailed)
+        if efficiency<CRITICAL and total>0:
+            sys.exit(RET_CRIT)
+        if efficiency<WARNING:
+            sys.exit(RET_WARN)
+            sys.exit(RET_OK)
+        sys.exit(RET_UNKN)
         
+
+def main():
+    usage = "usage: %prog [options] sitename"
+    parser = OptionParser(usage)
+    parser.add_option("-d", "--days", dest="days", default=1,
+                      help="days to take into account for HammerCloud efficiency (default=1)")
+    (options, args) = parser.parse_args()
+    if len(args) != 1:
+        parser.error("Please specify a CMS site name")
+    return hammercloud(args[0],options.days)
+#    print args[0]
+#    print options.days
+    
+if __name__ == "__main__":
+    main()
+                
