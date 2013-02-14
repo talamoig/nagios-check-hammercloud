@@ -46,8 +46,8 @@ def hammercloud(sitename,days):
             sys.exit(RET_CRIT)
         if efficiency<WARNING:
             sys.exit(RET_WARN)
-            sys.exit(RET_OK)
-        sys.exit(RET_UNKN)
+        sys.exit(RET_OK)
+    sys.exit(RET_UNKN)
         
 
 def main():
