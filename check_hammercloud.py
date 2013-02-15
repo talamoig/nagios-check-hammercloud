@@ -29,15 +29,16 @@ def hammercloud(sitename,days):
     html=map(lambda x:x.strip(),html)
     res=filter(lambda x:x.find("<td>%s"%sitename)==0,html)
     if len(res)!=1:
+        print("Cannot find %s in %url"%(sitename,url))
         sys.exit(RET_UNKN)
     res=res[0]
-    exp=".*<td>.*</td><td>([0-9]*)</td><td><a href=.*>([0-9]*) .*</td><td><a href=.*>([0-9]*) .*</td><td>(.*)</td></tr>"
+    exp=".*<td>.*</td><td>([\.0-9]*)</td><td><a href=.*>([\.0-9]*) .*</td><td><a href=.*>([\.0-9]*) .*</td><td>(.*)</td></tr>"
     r=re.compile(exp)
     m=r.match(res)
     if m:
-        total=int(m.group(1))
-        gridfailed=int(m.group(2))
-        appfailed=int(m.group(3))
+        total=int(m.group(1).replace(".",""))
+        gridfailed=int(m.group(2).replace(".",""))
+        appfailed=int(m.group(3).replace(".",""))
         totalfailed=gridfailed+appfailed
         efficiency=m.group(4)
         efficiency=float(efficiency)
@@ -47,6 +48,7 @@ def hammercloud(sitename,days):
         if efficiency<WARNING:
             sys.exit(RET_WARN)
         sys.exit(RET_OK)
+    print("Cannot find match in %s"%res)
     sys.exit(RET_UNKN)
         
 
